@@ -509,7 +509,7 @@ class PulseBlaster:
             case "33-3":
                 return (24, 500.0, 4096)
             case _:
-                raise Exception("Unrecognized firmware")
+                raise Exception(f"Unrecognized firmware {fw_id}")
                 # print("Unrecognized firmware")
                 # channels = input("Enter the number of channels on the board: ")
                 # clock = input("Enter the core clock frequency of the board (MHz): ")

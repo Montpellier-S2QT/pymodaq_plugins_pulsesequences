@@ -21,7 +21,7 @@ class PulsedController:
     def init_counter(
         self,
         device: int = 0,
-        dll_path: str = "C:\Windows\System32\DMCS8.dll",
+        dll_path: str = "C:\Windows\System32\DMCS6.dll",
         min_binwidth: float = 200e-12,
         max_sweep_length=6.8,  # it can go up to 8.3 days
         trigger_safety: float = 0,

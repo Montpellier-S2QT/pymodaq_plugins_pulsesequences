@@ -8,6 +8,9 @@ import pymodaq_gui.utils.layout as layout_mod
 from pymodaq.utils import config as config_mod_pymodaq
 from pymodaq_utils.logger import set_logger, get_module_name
 from pymodaq_data.data import DataToExport, DataWithAxes, Axis
+from pymodaq_data.h5modules.saving import H5SaverLowLevel
+from pymodaq_data.h5modules.data_saving import DataToExportSaver
+
 
 from pymodaq.utils.config import get_set_preset_path
 from pymodaq.utils.config import Config as PyMoConfig
@@ -24,6 +27,8 @@ import importlib
 import time
 import numpy as np
 from scipy import ndimage
+from pathlib import Path
+import os
 
 # import all the predefined pulse sequences
 # sys.path.append(r"C:\Users\Aurore")
@@ -90,7 +95,14 @@ class PulsedMeasurementExtension(CustomExt):
     # todo: if you wish to create custom Parameter and corresponding widgets. These will be
     # automatically added as children of self.settings. Morevover, the self.settings_tree will
     # render the widgets in a Qtree. If you wish to see it in your app, add is into a Dock
+
     params = [
+        {
+            "title": "Saving path:",
+            "name": "saving_path",
+            "type": "str",
+            "value": "",
+        },
         {
             "title": "Loaded presets",
             "name": "loaded_files",
@@ -140,6 +152,11 @@ class PulsedMeasurementExtension(CustomExt):
         self.setup_ui()
         self.t_det_done = time.perf_counter()
         self.dockarea.dock_signal.connect(self.save_layout_state_auto)
+
+        self.saving_path = self.get_data_path(base_dir=r"D:\Data", t=None)
+        self.settings.child("saving_path").setValue(self.saving_path)
+        self.dte_to_save = DataToExport("Pulsed_data_extracted")
+        self.raw_dte_to_save = DataToExport("Pulsed_data_raw")
 
     def setup_docks(self):
         """Mandatory method to be subclassed to setup the docks layout
@@ -243,6 +260,13 @@ class PulsedMeasurementExtension(CustomExt):
             "Save the Saved Docks layout corresponding to the current preset",
             auto_toolbar=False,
         )
+        self.add_action(
+            "save_measurement",
+            "Save Measurement",
+            "",
+            "Save the signal after integration and fitted signal",
+            auto_toolbar=False,
+        )
 
     def connect_things(self):
         """Connect actions and/or other widgets signal to methods"""
@@ -264,6 +288,10 @@ class PulsedMeasurementExtension(CustomExt):
                     self.settings.child("loaded_files", "layout_file").value()
                 )
             ),
+        )
+        self.connect_action(
+            "save_measurement",
+            self.save_all_data
         )
         self.detector.grab_done_signal.connect(self.periodic_analysis)
         self.do_analysis_signal.connect(self.process_extraction)
@@ -288,6 +316,7 @@ class PulsedMeasurementExtension(CustomExt):
         ####################
         # Extract the pulses
         ####################
+        self.raw_dte_to_save = dte
         dwa = dte[0].deepcopy()
         extracted_pulses = self.ungated_conv_deriv(
             count_data=dwa.data[0],
@@ -404,6 +433,7 @@ class PulsedMeasurementExtension(CustomExt):
                 ],
             )
         )
+        self.dte_to_save = dte_processed
         self.integration_done_signal.emit(dte_processed)
 
     def plot_extracted_results(self, dte: DataToExport):
@@ -453,6 +483,7 @@ class PulsedMeasurementExtension(CustomExt):
         settings_menu = menubar.addMenu("Settings")
         settings_menu.addAction(self.get_action("load_layout"))
         settings_menu.addAction(self.get_action("save_layout"))
+        settings_menu.addAction(self.get_action("save_measurement"))
 
     def value_changed(self, param):
         """Actions to perform when one of the param's value in self.settings is changed from the
@@ -468,7 +499,8 @@ class PulsedMeasurementExtension(CustomExt):
         ----------
         param: (Parameter) the parameter whose value just changed
         """
-        pass
+        if param.name=="saving_path":
+            self.saving_path = param.value()
 
     def program_pulseblaster(self):
         """
@@ -764,6 +796,45 @@ class PulsedMeasurementExtension(CustomExt):
         except Exception as e:
             logger.exception(str(e))
 
+    def save_all_data(self):
+        path = self.get_data_path(base_dir=r"D:\Data")
+        logger.info(f"Saving Data to : {path}")
+
+        h5saver = H5SaverLowLevel()
+
+        file_name = time.strftime("%Y%m%d_%H%M%S")
+        full_path = Path(path) / file_name
+        h5saver.init_file(full_path)
+
+        dte_saver = DataToExportSaver(h5saver)
+        try:
+            group = h5saver.add_generic_group('/RawData', "Analysis_signal")
+            dte_saver.add_data(group.path, self.dte_to_save)
+            group = h5saver.add_generic_group('/RawData', "Raw_signal")
+            dte_saver.add_data(group.path, self.raw_dte_to_save)
+        except Exception as e:
+            logger.exception(str(e))
+            h5saver.close_file()
+        h5saver.close_file()
+
+        pass
+
+    def get_data_path(self, base_dir=r"D:\Data", t=None):
+        # Use current local time if none provided
+        if t is None:
+            t = time.localtime()
+
+        yyyy = time.strftime("%Y", t)
+        mm = time.strftime("%m", t)
+        yyyymmdd = time.strftime("%Y%m%d", t)
+
+        # Build full path
+        path = os.path.join(base_dir, yyyy, mm, yyyymmdd)
+
+        # Create directory if it doesn't exist
+        os.makedirs(path, exist_ok=True)
+
+        return path
 
 def main():
     from pymodaq_gui.utils.utils import mkQApp
