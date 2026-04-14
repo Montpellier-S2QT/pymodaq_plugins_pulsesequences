@@ -202,7 +202,6 @@ class DAQ_1DViewer_PulsedCounter(DAQ_Viewer_base):
         time.sleep(self.settings.child("length").value() * 1e-9)
         self.controller.pulseblaster.stop()
         # Get data from FCT
-        # self.accumulated_data = self.controller.counter.get_data()
         self.iteration_count += 1
         self.dte_signal.emit(
             DataToExport(

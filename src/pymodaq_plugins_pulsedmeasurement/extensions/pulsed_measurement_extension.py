@@ -370,22 +370,27 @@ class PulsedMeasurementExtension(CustomExt):
         # Compute the coherence from the extracted fluorescence pulses
         ##############################################################
         extracted_pulses = np.array(dte[0].deepcopy().data)
-        ratios = np.empty(extracted_pulses.shape[0] - 1)
-        errors = np.empty(extracted_pulses.shape[0] - 1)
-        for i in range(extracted_pulses.shape[0] - 1):
-            polarized = extracted_pulses[i][windows[1][0] : windows[1][1]]
-            readout = extracted_pulses[i + 1][windows[0][0] : windows[0][1]]
-            if np.array_equal(polarized, np.zeros_like(polarized)):
-                ratio = 0
-                err_ratio = 0
-            else:
-                ratio = np.mean(readout) / np.mean(polarized)
-                err_ratio = ratio * np.sqrt(
-                    np.std(readout) ** 2 / np.mean(readout) ** 2
-                    + np.std(polarized) ** 2 / np.mean(polarized) ** 2
-                )
-            ratios[i] = ratio
-            errors[i] = err_ratio
+        if np.array_equal(
+            extracted_pulses, np.zeros_like(extracted_pulses.shape)
+        ):  # when using the sequence "Laser_On" we are not counting, therefore it returns zeros
+            ratios = np.zeros(extracted_pulses.shape[0] - 1)
+            errors = np.zeros(extracted_pulses.shape[0] - 1)
+        else:
+            ratios = np.empty(extracted_pulses.shape[0] - 1)
+            errors = np.empty(extracted_pulses.shape[0] - 1)
+            for i in range(extracted_pulses.shape[0] - 1):
+                polarized = extracted_pulses[i][windows[1][0] : windows[1][1]]
+                readout = extracted_pulses[i + 1][windows[0][0] : windows[0][1]]
+                if np.array_equal(polarized, np.zeros_like(polarized)):
+                    ratio = 0
+                    err_ratio = 0
+                else:
+                    ratio = np.mean(readout) / np.mean(polarized)
+                    err_ratio = ratio * np.sqrt(
+                        1 / np.sum(readout) + 1 / np.sum(polarized)
+                    )
+                ratios[i] = ratio
+                errors[i] = err_ratio
 
         ###########################
         # Fit the coherence profile
@@ -556,7 +561,7 @@ class PulsedMeasurementExtension(CustomExt):
         _, _, program_data = self.controller.pulseblaster.visualize_channels()
         self.controller.pulseblaster.compile_channels()
         self.controller.pulseblaster.add_inst(
-            0x000000, sequence._final_inst, sequence._final_inst_data, 0
+            0x000000, sequence._final_inst, sequence._final_inst_data, 10
         )
         self.controller.pulseblaster.program()
         print("Pulse sequence programmed")

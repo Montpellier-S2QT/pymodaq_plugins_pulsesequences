@@ -49,6 +49,16 @@ class Ui_MainWindow(object):
         self.label_channel.setText("Channels")
         self.layout_channel.addWidget(self.label_channel)
         self.layout_channel_2 = QtWidgets.QHBoxLayout()
+        self.layout_channel_IQ = QtWidgets.QVBoxLayout()
+        self.param_channel_IQ = QtWidgets.QSpinBox(self.centralwidget)
+        self.param_channel_IQ.setFixedSize(QtCore.QSize(40, 20))
+        self.param_channel_IQ.setValue(3)
+        self.layout_channel_IQ.addWidget(self.param_channel_IQ)
+        self.label_channel_IQ = QtWidgets.QLabel(self.centralwidget)
+        self.label_channel_IQ.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_channel_IQ.setText("IQ")
+        self.layout_channel_IQ.addWidget(self.label_channel_IQ)
+        self.layout_channel_2.addLayout(self.layout_channel_IQ)
         self.layout_channel_MW = QtWidgets.QVBoxLayout()
         self.param_channel_MW = QtWidgets.QSpinBox(self.centralwidget)
         self.param_channel_MW.setFixedSize(QtCore.QSize(40, 20))
@@ -90,6 +100,20 @@ class Ui_MainWindow(object):
         self.label_general.setText("General Settings")
         self.layout_general.addWidget(self.label_general)
         self.layout_general_2 = QtWidgets.QHBoxLayout()
+        self.layout_general_Rabi_period = QtWidgets.QVBoxLayout()
+        self.param_general_Rabi_period = ScientificSpinBox(
+            self.centralwidget,
+            base_unit="ns",
+            allowed_units=["ns", "us", "ms"],
+            default_value=Decimal(20),
+        )
+        self.param_general_Rabi_period.setFixedSize(QtCore.QSize(80, 20))
+        self.layout_general_Rabi_period.addWidget(self.param_general_Rabi_period)
+        self.label_general_Rabi_period = QtWidgets.QLabel(self.centralwidget)
+        self.label_general_Rabi_period.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_general_Rabi_period.setText("Rabi period")
+        self.layout_general_Rabi_period.addWidget(self.label_general_Rabi_period)
+        self.layout_general_2.addLayout(self.layout_general_Rabi_period)
         self.layout_general_MW_amplitude = QtWidgets.QVBoxLayout()
         self.param_general_MW_amplitude = ScientificSpinBox(
             self.centralwidget,
